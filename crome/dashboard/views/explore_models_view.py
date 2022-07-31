@@ -6,6 +6,7 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 
+from crome.dashboard.database.manager import fetch_and_clean_data
 from crome.optimize import pareto
 from crome.config import config
 
@@ -73,9 +74,7 @@ def explore_models_view():
     }
     with st.sidebar:
         key = st.selectbox('Select visualization:', visualization.keys())
-    df = pd.read_json(os.path.join(PROJECT_PATH, 'reports', 'results', 'scores.json'), orient='table') \
-        .replace('N/A', np.NaN)
-    df = df.assign(model=df['model'].map({'bayes': 'Bayes', 'cnn': 'CNN', 'knn': 'KNN'}))
+    df = fetch_and_clean_data('scores')
     #
     model_options = df['model'].unique()
     selected_models = st.sidebar.multiselect('Select model(s)', model_options, [model_options[0]])
