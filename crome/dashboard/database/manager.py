@@ -1,7 +1,9 @@
+import os
 from datetime import timedelta
 import tqdm
 from itertools import product
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 from haversine import haversine_vector, Unit
@@ -13,21 +15,33 @@ from crome.config import config
 PROJECT_PATH = config['DEFAULT']['project_path']
 
 
-@st.cache
+@st.cache(persist=True, show_spinner=False)
 def fetch_and_clean_data(key):
     """Load data from managed data store.
 
     :param key:
     :return:
     """
-    if 'reports' == key:
-        return pd.read_json('{}/data/processed/reports.json'.format(PROJECT_PATH), orient='table')
-    elif 'report_grids' == key:
-        return pd.read_json('{}/data/processed/report_grids.json'.format(PROJECT_PATH),
-                            orient='table')
-    elif 'incidents' == key:
-        return pd.read_json('{}/data/processed/incidents.json'.format(PROJECT_PATH),
-                            orient='table')
+    with st.spinner('We are getting the data ready...'):
+        if 'reports' == key:
+            return pd.read_json('{}/data/processed/reports.json'.format(PROJECT_PATH), orient='table')
+        elif 'report_grids' == key:
+            return pd.read_json('{}/data/processed/report_grids.json'.format(PROJECT_PATH),
+                                orient='table')
+        elif 'incidents' == key:
+            return pd.read_json('{}/data/processed/incidents.json'.format(PROJECT_PATH),
+                                orient='table')
+        elif 'results' == key:
+            df = pd.read_json(os.path.join(PROJECT_PATH, 'reports', 'results', 'results.json'), orient='table') \
+                .replace('N/A', np.NaN) \
+                .sort_values('time')
+            df = df.assign(model=df['model'].map({'bayes': 'Bayes', 'cnn': 'CNN', 'knn': 'KNN'}))
+            return df.reset_index(drop=True)
+        elif 'scores' == key:
+            df = pd.read_json(os.path.join(PROJECT_PATH, 'reports', 'results', 'scores.json'), orient='table') \
+                .replace('N/A', np.NaN)
+            df = df.assign(model=df['model'].map({'bayes': 'Bayes', 'cnn': 'CNN', 'knn': 'KNN'}))
+            return df
     return None
 
 
